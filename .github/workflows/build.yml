@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     env:
       PADAVAN_DIR: /opt/padavan-ng
@@ -50,10 +50,7 @@ jobs:
         run: |
           # Ensure cross-compiler is in PATH
           export PATH="$PADAVAN_DIR/toolchain/out/bin:$PATH"
-          # Force GCC for host tools (Ubuntu defaults to clang which breaks build)
-          export CC=gcc
-          export CXX=g++
-          export CPP="gcc -E"
+          # Ubuntu 22.04 uses GCC by default, no clang override needed
           # Verify cross-compiler exists
           which mipsel-linux-uclibc-gcc && mipsel-linux-uclibc-gcc --version | head -1
           echo "Host CC: $(which gcc) $(gcc --version | head -1)"
