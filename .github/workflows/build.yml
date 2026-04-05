@@ -1,0 +1,55 @@
+name: Build Padavan Firmware
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tl_c2-v1.config'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout config
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake autopoint bison build-essential cmake cpio curl \
+            fakeroot flex gawk gettext git gperf help2man kmod libblkid-dev \
+            libc-ares-dev libcurl4-openssl-dev libdevmapper-dev libev-dev \
+            libevent-dev libgmp-dev libgpg-error-dev libjansson-dev libjson-c-dev \
+            libkeyutils-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev \
+            libssl-dev libtool libudev-dev libxml2-dev locales mtr nano \
+            pkg-config ppp-dev python3 python3-docutils texinfo unzip uuid \
+            uuid-dev uuid-runtime wget xxd zlib1g-dev
+
+      - name: Clone padavan-ng source
+        run: |
+          git clone --depth=1 https://gitlab.com/hadzhioglu/padavan-ng.git /opt/padavan-ng
+
+      - name: Apply custom config
+        run: |
+          cp tl_c2-v1.config /opt/padavan-ng/trunk/.config
+
+      - name: Build toolchain
+        working-directory: /opt/padavan-ng/toolchain
+        run: |
+          ./clean_sources.sh
+          ./build_toolchain.sh
+
+      - name: Build firmware
+        working-directory: /opt/padavan-ng/trunk
+        run: |
+          ./clear_tree.sh
+          ./build_firmware.sh
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: padavan-TL_C2-V1-custom
+          path: /opt/padavan-ng/trunk/images/*.trx
+          retention-days: 30
