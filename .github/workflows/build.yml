@@ -11,6 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      PADAVAN_DIR: /opt/padavan-ng
+
     steps:
       - name: Checkout config
         uses: actions/checkout@v4
@@ -27,16 +30,14 @@ jobs:
             libssl-dev libtool libtool-bin libudev-dev libxml2-dev locales mtr nano \
             pkg-config ppp-dev python3 python3-docutils texinfo unzip uuid \
             uuid-dev uuid-runtime wget xxd zlib1g-dev
-          # Ensure libtool is in PATH
-          which libtool && libtool --version
 
       - name: Clone padavan-ng source
         run: |
-          git clone --depth=1 https://gitlab.com/hadzhioglu/padavan-ng.git /opt/padavan-ng
+          git clone --depth=1 https://gitlab.com/hadzhioglu/padavan-ng.git $PADAVAN_DIR
 
       - name: Apply custom config
         run: |
-          cp tl_c2-v1.config /opt/padavan-ng/trunk/.config
+          cp tl_c2-v1.config $PADAVAN_DIR/trunk/.config
 
       - name: Build toolchain
         working-directory: /opt/padavan-ng/toolchain
@@ -47,8 +48,20 @@ jobs:
       - name: Build firmware
         working-directory: /opt/padavan-ng/trunk
         run: |
+          # Ensure cross-compiler is in PATH
+          export PATH="$PADAVAN_DIR/toolchain/out/bin:$PATH"
+          # Verify cross-compiler exists
+          which mipsel-linux-uclibc-gcc && mipsel-linux-uclibc-gcc --version | head -1
+          # Build
           ./clear_tree.sh
           ./build_firmware.sh
+
+      - name: Show firmware info
+        if: success()
+        run: |
+          ls -la $PADAVAN_DIR/trunk/images/ 2>/dev/null
+          echo "---"
+          md5sum $PADAVAN_DIR/trunk/images/*.trx 2>/dev/null
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
